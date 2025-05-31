@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catur vs Fikri Pemboy - AI Catur Keren</title>
+    <style>
+        :root {
+            --dark-square: #b58863;
+            --light-square: #f0d9b5;
+            --highlight: rgba(0, 0, 255, 0.4);
+            --move-hint: rgba(0, 255, 0, 0.4);
+            --check: rgba(255, 0, 0, 0.8);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #ccc;
+            margin-bottom: 20px;
+        }
+
+        .game-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+            animation: slideUp 0.8s ease-out;
+        }
+
+        .chess-board {
+            width: 500px;
+            height: 500px;
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            grid-template-rows: repeat(8, 1fr);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            transition: transform 0.3s;
+        }
+
+        .chess-board:hover {
+            transform: scale(1.02);
+        }
+
+        .square {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .square.light {
+            background-color: var(--light-square);
+        }
+
+        .square.dark {
+            background-color: var(--dark-square);
+        }
+
+        .square.highlight {
+            background-color: var(--highlight);
+        }
+
+        .square.move-hint {
+            background-color: var(--move-hint);
+        }
+
+        .square.check {
+            background-color: var(--check);
+        }
+
+        .piece {
+            width: 90%;
+            height: 90%;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            z-index: 10;
+            transition: transform 0.2s;
+        }
+
+        .piece:hover {
+            transform: scale(1.1);
+        }
+
+        .piece.dragging {
+            transform: scale(1.2);
+            z-index: 100;
+        }
+
+        .coordinates {
+            position: absolute;
+            font-size: 12px;
+            font-weight: bold;
+            color: rgba(0, 0, 0, 0.5);
+        }
+
+        .coordinates.file {
+            bottom: 2px;
+            right: 4px;
+        }
+
+        .coordinates.rank {
+            top: 2px;
+            left: 4px;
+        }
+
+        .game-info {
+            flex: 1;
+            min-width: 300px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: fadeIn 1.2s ease-in-out;
+        }
+
+        .game-info h2 {
+            color: #4ecdc4;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #4ecdc4;
+            padding-bottom: 8px;
+        }
+
+        .status {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            font-size: 1.1rem;
+        }
+
+        .status span {
+            font-weight: bold;
+            color: #ff6b6b;
+        }
+
+        .moves {
+            max-height: 300px;
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .move-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 5px;
+        }
+
+        .move {
+            padding: 5px 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .move:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background: linear-gradient(135deg, #4ecdc4, #556270);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            flex: 1;
+            min-width: 120px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
+            background: linear-gradient(135deg, #45b7af, #4a5664);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .difficulty-selector {
+            margin-bottom: 20px;
+        }
+
+        .difficulty-selector label {
+            display: block;
+            margin-bottom: 8px;
+            color: #ccc;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 1rem;
+        }
+
+        .ai-thinking {
+            display: none;
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 215, 0, 0.2);
+            border-radius: 8px;
+            text-align: center;
+            animation: pulse 1.5s infinite;
+        }
+
+        .ai-thinking.active {
+            display: block;
+        }
+
+        .promotion-dialog {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 1000;
+            text-align: center;
+        }
+
+        .promotion-dialog h3 {
+            margin-bottom: 15px;
+            color: white;
+        }
+
+        .promotion-options {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .promotion-option {
+            width: 60px;
+            height: 60px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+            border-radius: 5px;
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+
+        .promotion-option:hover {
+            transform: scale(1.1);
+            background-color: white;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { 
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            border-radius: 50%;
+            animation: fall 5s linear forwards;
+        }
+
+        @keyframes fall {
+            to {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .chess-board {
+                width: 350px;
+                height: 350px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .move-list {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Catur vs Fikri Pemboy</h1>
+            <p class="subtitle">Hadapi AI catur terkuat dengan gaya Pemboy!</p>
+        </header>
+
+        <div class="game-container">
+            <div class="chess-board" id="board"></div>
+
+            <div class="game-info">
+                <h2>Game Info</h2>
+                <div class="status">
+                    Giliran: <span id="turn-indicator">Putih</span>
+                </div>
+
+                <div class="difficulty-selector">
+                    <label for="difficulty">Tingkat Kesulitan:</label>
+                    <select id="difficulty">
+                        <option value="1">Mudah (Pemboy Santai)</option>
+                        <option value="2" selected>Medium (Pemboy Serius)</option>
+                        <option value="3">Sulit (Pemboy Galak)</option>
+                        <option value="4">Expert (Pemboy Mengerikan)</option>
+                    </select>
+                </div>
+
+                <div class="moves">
+                    <h3>Riwayat Langkah</h3>
+                    <div class="move-list" id="move-history"></div>
+                </div>
+
+                <div class="ai-thinking" id="ai-thinking">
+                    Fikri Pemboy sedang berpikir...
+                </div>
+
+                <div class="controls">
+                    <button id="new-game">Game Baru</button>
+                    <button id="undo-move">Undo</button>
+                    <button id="flip-board">Putar Papan</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="promotion-dialog" id="promotion-dialog">
+            <h3>Promosikan pion menjadi:</h3>
+            <div class="promotion-options">
+                <div class="promotion-option" data-piece="q"></div>
+                <div class="promotion-option" data-piece="r"></div>
+                <div class="promotion-option" data-piece="b"></div>
+                <div class="promotion-option" data-piece="n"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Inisialisasi game
+            const boardElement = document.getElementById('board');
+            const turnIndicator = document.getElementById('turn-indicator');
+            const moveHistoryElement = document.getElementById('move-history');
+            const newGameButton = document.getElementById('new-game');
+            const undoButton = document.getElementById('undo-move');
+            const flipBoardButton = document.getElementById('flip-board');
+            const difficultySelector = document.getElementById('difficulty');
+            const aiThinkingIndicator = document.getElementById('ai-thinking');
+            const promotionDialog = document.getElementById('promotion-dialog');
+            const promotionOptions = document.querySelectorAll('.promotion-option');
+
+            // Variabel game state
+            let game = new Chess();
+            let boardOrientation = 'white';
+            let selectedSquare = null;
+            let moveHints = [];
+            let moveHistory = [];
+            let waitingForPromotion = false;
+            let promotionMove = null;
+            let aiThinking = false;
+
+            // Mapping piece type to unicode
+            const pieceUnicode = {
+                p: '♟', r: '♜', n: '♞', b: '♝', q: '♛', k: '♚',
+                P: '♙', R: '♖', N: '♘', B: '♗', Q: '♕', K: '♔'
+            };
+
+            // Mapping piece type to image
+            const pieceImages = {
+                p: 'https://upload.wikimedia.org/wikipedia/commons/0/04/Chess_pdt60.png',
+                r: 'https://upload.wikimedia.org/wikipedia/commons/a/a0/Chess_rdt60.png',
+                n: 'https://upload.wikimedia.org/wikipedia/commons/2/28/Chess_ndt60.png',
+                b: 'https://upload.wikimedia.org/wikipedia/commons/9/9b/Chess_bdt60.png',
+                q: 'https://upload.wikimedia.org/wikipedia/commons/4/49/Chess_qdt60.png',
+                k: 'https://upload.wikimedia.org/wikipedia/commons/3/3b/Chess_kdt60.png',
+                P: 'https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt60.png',
+                R: 'https://upload.wikimedia.org/wikipedia/commons/5/5c/Chess_rlt60.png',
+                N: 'https://upload.wikimedia.org/wikipedia/commons/2/28/Chess_nlt60.png',
+                B: 'https://upload.wikimedia.org/wikipedia/commons/9/9b/Chess_blt60.png',
+                Q: 'https://upload.wikimedia.org/wikipedia/commons/4/4c/Chess_qlt60.png',
+                K: 'https://upload.wikimedia.org/wikipedia/commons/3/3b/Chess_klt60.png'
+            };
+
+            // Inisialisasi papan
+            function initBoard() {
+                boardElement.innerHTML = '';
+                
+                // Buat 64 kotak
+                for (let i = 0; i < 64; i++) {
+                    const row = Math.floor(i / 8);
+                    const col = i % 8;
+                    
+                    // Tentukan warna kotak
+                    const isLight = (row + col) % 2 === 0;
+                    const squareColor = isLight ? 'light' : 'dark';
+                    
+                    // Buat elemen kotak
+                    const square = document.createElement('div');
+                    square.className = `square ${squareColor}`;
+                    square.dataset.square = indexToSquare(i);
+                    
+                    // Tambahkan koordinat untuk kotak a1, h1, a8, h8, dll
+                    if ((row === 7 && col === 0) || (row === 0 && col === 7) || 
+                        (row === 7 && col === 7) || (row === 0 && col === 0)) {
+                        const fileCoord = document.createElement('div');
+                        fileCoord.className = 'coordinates file';
+                        fileCoord.textContent = String.fromCharCode(97 + col);
+                        square.appendChild(fileCoord);
+                        
+                        const rankCoord = document.createElement('div');
+                        rankCoord.className = 'coordinates rank';
+                        rankCoord.textContent = 8 - row;
+                        square.appendChild(rankCoord);
+                    }
+                    
+                    square.addEventListener('click', () => handleSquareClick(square.dataset.square));
+                    
+                    boardElement.appendChild(square);
+                }
+                
+                updateBoard();
+            }
+
+            // Update tampilan papan berdasarkan game state
+            function updateBoard() {
+                // Hapus semua piece dan highlight
+                document.querySelectorAll('.square').forEach(square => {
+                    square.innerHTML = square.querySelector('.coordinates') ? 
+                        square.querySelector('.coordinates').outerHTML : '';
+                    square.classList.remove('highlight', 'move-hint', 'check');
+                });
+                
+                // Tampilkan piece
+                for (let i = 0; i < 64; i++) {
+                    const square = indexToSquare(i);
+                    const piece = game.get(square);
+                    
+                    if (piece) {
+                        const squareElement = document.querySelector(`.square[data-square="${square}"]`);
+                        const pieceElement = document.createElement('div');
+                        pieceElement.className = 'piece';
+                        pieceElement.dataset.piece = piece.type;
+                        pieceElement.dataset.color = piece.color;
+                        
+                        // Gunakan gambar atau unicode
+                        pieceElement.style.backgroundImage = `url('${pieceImages[piece.color === 'w' ? piece.type.toUpperCase() : piece.type]}')`;
+                        
+                        squareElement.appendChild(pieceElement);
+                    }
+                }
+                
+                // Highlight kotak yang dipilih
+                if (selectedSquare) {
+                    const squareElement = document.querySelector(`.square[data-square="${selectedSquare}"]`);
+                    if (squareElement) squareElement.classList.add('highlight');
+                    
+                    // Tampilkan hint untuk langkah yang mungkin
+                    moveHints.forEach(move => {
+                        const targetSquare = document.querySelector(`.square[data-square="${move.to}"]`);
+                        if (targetSquare) targetSquare.classList.add('move-hint');
+                    });
+                }
+                
+                // Highlight jika raja dalam keadaan skak
+                if (game.in_check()) {
+                    const kingColor = game.turn() === 'w' ? 'b' : 'w';
+                    const kingSquare = findKingSquare(kingColor);
+                    if (kingSquare) {
+                        const squareElement = document.querySelector(`.square[data-square="${kingSquare}"]`);
+                        if (squareElement) squareElement.classList.add('check');
+                    }
+                }
+                
+                // Update indikator giliran
+                turnIndicator.textContent = game.turn() === 'w' ? 'Putih' : 'Hitam';
+                turnIndicator.style.color = game.turn() === 'w' ? 'white' : 'black';
+                
+                // Update riwayat langkah
+                updateMoveHistory();
+                
+                // Cek jika game selesai
+                if (game.is_game_over()) {
+                    let result = '';
+                    if (game.in_checkmate()) {
+                        result = `Skakmat! ${game.turn() === 'w' ? 'Hitam' : 'Putih'} menang!`;
+                        createConfetti(game.turn() === 'w' ? 'black' : 'white');
+                    } else if (game.in_draw()) {
+                        result = 'Game berakhir seri!';
+                        if (game.in_stalemate()) result = 'Stalemate! Game seri.';
+                        else if (game.in_threefold_repetition()) result = 'Pengulangan 3x! Game seri.';
+                        else if (game.insufficient_material()) result = 'Material tidak cukup! Game seri.';
+                    }
+                    
+                    if (result) {
+                        setTimeout(() => alert(result), 100);
+                    }
+                } else if (game.turn() === 'b' && !aiThinking) {
+                    // Giliran AI
+                    makeAiMove();
+                }
+            }
+
+            // Handle klik kotak
+            function handleSquareClick(square) {
+                if (aiThinking) return;
+                
+                const piece = game.get(square);
+                
+                // Jika sedang menunggu promosi, abaikan klik lainnya
+                if (waitingForPromotion) return;
+                
+                // Jika ada piece yang dipilih dan mencoba memilih piece 
